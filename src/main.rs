@@ -69,9 +69,8 @@ where
     F: Fn(&str),
 {
     // 构造路径，例如 ./src/day25/input
-    // 注意：这里假设你的 input 放在 src/dayXX/input，这其实不太符合 Rust 惯例
     // 建议放在项目根目录的 inputs/day25.txt，不过这里保留你的习惯
-    let input_path = format!("./inputs/{}", day_name);
+    let input_path = format!("./inputs/{}.txt", day_name);
     
     match read_file_string(&input_path) {
         Ok(input) => {

@@ -1,11 +1,9 @@
-pub fn part01(input: &str) -> String {
-    // 你的逻辑
-    format!("solved part 1 with len {}", input.len())
+pub fn part01(input: &str) -> Result<String, Error> {
+    OK(format!("solved part 1 with len {}", input.len()))
 }
 
-pub fn part02(input: &str) -> String {
-    // 你的逻辑
-    "solved part 2".to_string()
+pub fn part02(input: &str) -> Result<String, Error>  {
+    OK("solved part 2".to_string())
 }
 
 // 单元测试建议直接写在对应天的文件里
