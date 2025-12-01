@@ -69,7 +69,6 @@ where
     F: Fn(&str),
 {
     // 构造路径，例如 ./src/day25/input
-    // 建议放在项目根目录的 inputs/day25.txt，不过这里保留你的习惯
     let input_path = format!("./inputs/{}.txt", day_name);
     
     match read_file_string(&input_path) {

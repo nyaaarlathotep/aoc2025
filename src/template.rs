@@ -6,16 +6,20 @@ pub fn part02(input: &str) -> Result<String, Error>  {
     OK("solved part 2".to_string())
 }
 
-// 单元测试建议直接写在对应天的文件里
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-
+    const INPUT: &str = "";
     #[test]
     fn test_part1() {
         // 读取同目录下的 test 文件
-        let input = fs::read_to_string("./src/day1/test").unwrap();
-        assert_eq!(part01(&input), "expected_result");
+
+        assert_eq!(part01(&INPUT).unwrap(), "3");
+    }
+    #[test]
+    fn test_part2() {
+        // 读取同目录下的 test 文件
+
+        assert_eq!(part02(&INPUT).unwrap(), "6");
     }
 }
