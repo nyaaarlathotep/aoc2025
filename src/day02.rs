@@ -70,65 +70,35 @@ fn add_one(s: &str) -> String {
 }
 
 pub fn part02(input: &str) -> Result<String, Error> {
-    let res: i64 = input
-        .split(",")
-        .map(|line| line.split('-').collect::<Vec<&str>>())
-        .map(|parts| {
-            let mut candidates = vec![];
-            let start: i64 = parts[0].parse().unwrap();
-            let end: i64 = parts[1].parse().unwrap();
-            if end < start {
-                return vec![];
-            }
-            let start_len = parts[0].len();
-            let end_len = parts[1].len();
-            for prefix_len in 1..=end_len / 2 {
-                // print!(
-                //     "prefix_len: {}, startLen: {}, endLen: {}\n",
-                //     prefix_len, start, end
-                // );
-                if start_len % prefix_len != 0 && end_len % prefix_len != 0 {
+    let ranges = get_ranges(input);
+    let mut result: i64 = 0;
+
+    for (n1, n2) in ranges {
+        for n in n1..=n2 {
+            let s = n.to_string();
+
+            for i in 0..(s.len() / 2) {
+                let pattern = &s[0..=i];
+
+                if s.len() % pattern.len() != 0 {
                     continue;
                 }
-                let mut prefix = "1".to_string();
-                prefix.push_str("0".repeat(prefix_len - 1).as_str());
-                loop {
-                    for target_len in start_len..=end_len {
-                        if target_len % prefix_len != 0 {
-                            continue;
-                        }
-                        let candidate = {
-                            let repeat_count = target_len / prefix_len;
-                            let candidate_str: String = prefix.repeat(repeat_count);
-                            let candidate: i64 = candidate_str.parse().unwrap();
-                            candidate
-                        };
-                        if candidate >= start && candidate <= end {
-                            // println!("Found candidate: {}", candidate);
-                            candidates.push(candidate);
-                        }
-                        if candidate > end {
-                            break;
-                        }
-                    }
-                    let next_slice = add_one(&prefix);
-                    if next_slice.len() > prefix.len() {
-                        break;
-                    }
-                    prefix = next_slice;
+                let repeats = s.len() / pattern.len();
+                if s == pattern.repeat(repeats) {
+                    result += i64::from(n);
+                    break;
                 }
             }
-            candidates
-        })
-        .flatten()
-        .collect::<HashSet<i64>>()
-        .into_iter()
-        // .map(|x| {
-        //     print!("Unique candidate: {}\n", x);
-        //     x
-        // })
-        .sum();
-    Ok(res.to_string())
+        }
+    }
+    Ok(result.to_string())
+}
+fn get_ranges(input: &str) -> Vec<(i64, i64)> {
+    input
+        .split(",")
+        .map(|r| r.split_once("-").unwrap())
+        .map(|r| (r.0.parse().unwrap(), r.1.parse().unwrap()))
+        .collect()
 }
 
 #[cfg(test)]
