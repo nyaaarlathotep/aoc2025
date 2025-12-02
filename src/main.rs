@@ -8,7 +8,8 @@ use std::time::Instant;
 // 每做新的一天，就在这里加上 dayXX
 // ==========================================
 aoc_main!(
-    day01
+    day01,
+    day02
     // day01,
     // day02,
 );

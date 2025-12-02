@@ -1,9 +1,11 @@
+use std::fmt::Error;
+
 pub fn part01(input: &str) -> Result<String, Error> {
-    OK(format!("solved part 1 with len {}", input.len()))
+    Ok(format!("solved part 1 with len {}", input.len()))
 }
 
 pub fn part02(input: &str) -> Result<String, Error>  {
-    OK("solved part 2".to_string())
+    Ok("solved part 2".to_string())
 }
 
 #[cfg(test)]
