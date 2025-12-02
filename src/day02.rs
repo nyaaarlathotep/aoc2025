@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::{f32::consts::E, fmt::Error};
 
 pub fn part01(input: &str) -> Result<String, Error> {
@@ -14,10 +15,6 @@ pub fn part01(input: &str) -> Result<String, Error> {
             let start_len = parts[0].len();
             let end_len = parts[1].len();
             for prefix_len in start_len / 2..=end_len / 2 {
-                print!(
-                    "prefix_len: {}, startLen: {}, endLen: {}\n",
-                    prefix_len, start, end
-                );
                 if prefix_len == 0 {
                     continue;
                 }
@@ -30,7 +27,6 @@ pub fn part01(input: &str) -> Result<String, Error> {
                         candidate
                     };
                     if candidate >= start && candidate <= end {
-                        println!("Found candidate: {}", candidate);
                         candidates.push(candidate);
                     }
                     if candidate > end {
@@ -74,62 +70,65 @@ fn add_one(s: &str) -> String {
 }
 
 pub fn part02(input: &str) -> Result<String, Error> {
-    // let res: i64 = input
-    //     .split(",")
-    //     .map(|line| line.split('-').collect::<Vec<&str>>())
-    //     .map(|parts| {
-    //         let mut candidates = vec![];
-    //         let start: i64 = parts[0].parse().unwrap();
-    //         let end: i64 = parts[1].parse().unwrap();
-    //         if end < start {
-    //             return vec![];
-    //         }
-    //         let start_len = parts[0].len();
-    //         let end_len = parts[1].len();
-    //         for prefix_len in 1..=end_len / 2 {
-    //             print!(
-    //                 "prefix_len: {}, startLen: {}, endLen: {}\n",
-    //                 prefix_len, start, end
-    //             );
-    //             if start_len % prefix_len != 0 && end_len % prefix_len != 0 {
-    //                 continue;
-    //             }
-    //             let mut prefix = parts[0][0..prefix_len].to_string();
-    //             loop {
-    //                 let candidate = if start_len % prefix_len == 0 {
-    //                     let repeat_count = start_len / prefix_len;
-    //                     let candidate_str = prefix.repeat(repeat_count);
-    //                     let candidate: i64 = candidate_str.parse().unwrap();
-    //                     candidate
-    //                 } else if end_len % prefix_len == 0 {
-    //                     let repeat_count = end_len / prefix_len;
-    //                     let candidate_str = prefix.repeat(repeat_count);
-    //                     let candidate: i64 = candidate_str.parse().unwrap();
-
-    //                     candidate
-    //                 } else {
-    //                     panic!("unreachable");
-    //                 };
-    //                 if candidate >= start && candidate <= end {
-    //                     println!("Found candidate: {}", candidate);
-    //                     candidates.push(candidate);
-    //                 }
-    //                 if candidate > end {
-    //                     break;
-    //                 }
-    //                 let next_slice = add_one(&prefix);
-    //                 if next_slice.len() > prefix.len() {
-    //                     break;
-    //                 }
-
-    //                 prefix = next_slice;
-    //             }
-    //         }
-    //         candidates
-    //     })
-    //     .flatten()
-    //     .sum();
-    Ok("".to_string())
+    let res: i64 = input
+        .split(",")
+        .map(|line| line.split('-').collect::<Vec<&str>>())
+        .map(|parts| {
+            let mut candidates = vec![];
+            let start: i64 = parts[0].parse().unwrap();
+            let end: i64 = parts[1].parse().unwrap();
+            if end < start {
+                return vec![];
+            }
+            let start_len = parts[0].len();
+            let end_len = parts[1].len();
+            for prefix_len in 1..=end_len / 2 {
+                // print!(
+                //     "prefix_len: {}, startLen: {}, endLen: {}\n",
+                //     prefix_len, start, end
+                // );
+                if start_len % prefix_len != 0 && end_len % prefix_len != 0 {
+                    continue;
+                }
+                let mut prefix = "1".to_string();
+                prefix.push_str("0".repeat(prefix_len - 1).as_str());
+                loop {
+                    for target_len in start_len..=end_len {
+                        if target_len % prefix_len != 0 {
+                            continue;
+                        }
+                        let candidate = {
+                            let repeat_count = target_len / prefix_len;
+                            let candidate_str: String = prefix.repeat(repeat_count);
+                            let candidate: i64 = candidate_str.parse().unwrap();
+                            candidate
+                        };
+                        if candidate >= start && candidate <= end {
+                            // println!("Found candidate: {}", candidate);
+                            candidates.push(candidate);
+                        }
+                        if candidate > end {
+                            break;
+                        }
+                    }
+                    let next_slice = add_one(&prefix);
+                    if next_slice.len() > prefix.len() {
+                        break;
+                    }
+                    prefix = next_slice;
+                }
+            }
+            candidates
+        })
+        .flatten()
+        .collect::<HashSet<i64>>()
+        .into_iter()
+        // .map(|x| {
+        //     print!("Unique candidate: {}\n", x);
+        //     x
+        // })
+        .sum();
+    Ok(res.to_string())
 }
 
 #[cfg(test)]
@@ -146,6 +145,6 @@ mod tests {
     fn test_part2() {
         // 读取同目录下的 test 文件
 
-        // assert_eq!(part02(&INPUT).unwrap(), "6");
+        assert_eq!(part02(&INPUT).unwrap(), "4174379265");
     }
 }
