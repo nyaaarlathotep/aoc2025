@@ -9,7 +9,8 @@ use std::time::Instant;
 // ==========================================
 aoc_main!(
     day01,
-    day02
+    day02,
+    day03
     // day01,
     // day02,
 );
