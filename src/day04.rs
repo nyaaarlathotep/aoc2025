@@ -73,7 +73,73 @@ fn map(input: &str) -> Vec<Vec<u8>> {
 }
 
 pub fn part02(input: &str) -> Result<String, Error> {
-    Ok("solved part 2".to_string())
+    let mut m = map(input);
+    // m to stream
+    let mut total_moved = 0;
+    loop {
+        let moved: Vec<(usize, usize)> = m
+            .iter()
+            .enumerate()
+            .map(|(i, line)| {
+                line.iter()
+                    .enumerate()
+                    .map(|(j, &c)| {
+                        let mut count = 0;
+                        if c == 1 {
+                            // check up
+                            if i > 0 && m[i - 1][j] == 1 {
+                                count += 1;
+                            }
+                            // check down
+                            if i < m.len() - 1 && m[i + 1][j] == 1 {
+                                count += 1;
+                            }
+                            // check left
+                            if j > 0 && line[j - 1] == 1 {
+                                count += 1;
+                            }
+                            // check right
+                            if j < line.len() - 1 && line[j + 1] == 1 {
+                                count += 1;
+                            }
+                            // check diagonal up-left
+                            if i > 0 && j > 0 && m[i - 1][j - 1] == 1 {
+                                count += 1;
+                            }
+                            // check diagonal up-right
+                            if i > 0 && j < line.len() - 1 && m[i - 1][j + 1] == 1 {
+                                count += 1;
+                            }
+                            // check diagonal down-left
+                            if i < m.len() - 1 && j > 0 && m[i + 1][j - 1] == 1 {
+                                count += 1;
+                            }
+                            // check diagonal down-right
+                            if i < m.len() - 1 && j < line.len() - 1 && m[i + 1][j + 1] == 1 {
+                                count += 1;
+                            }
+
+                            if count < 4 { Some((i, j)) } else { None }
+                        } else {
+                            None
+                        }
+                    })
+                    .filter(|x| x.is_some())
+                    .map(|x| x.unwrap())
+                    .collect::<Vec<(usize, usize)>>()
+            })
+            .flatten()
+            .collect();
+
+        if moved.is_empty() {
+            break;
+        }
+        total_moved += moved.len();
+        for (i, j) in moved {
+            m[i][j] = 0;
+        }
+    }
+    Ok(total_moved.to_string())
 }
 
 #[cfg(test)]
@@ -99,6 +165,6 @@ mod tests {
     fn test_part2() {
         // 读取同目录下的 test 文件
 
-        assert_eq!(part02(&INPUT).unwrap(), "6");
+        assert_eq!(part02(&INPUT).unwrap(), "43");
     }
 }
