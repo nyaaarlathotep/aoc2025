@@ -1,3 +1,5 @@
+use std::vec;
+
 pub fn part01(input: &str) -> Result<String, &str> {
     let (numbers, operators) = parse(input);
     let res = operators
@@ -30,7 +32,116 @@ fn parse(input: &str) -> (Vec<Vec<i64>>, Vec<&str>) {
 }
 
 pub fn part02(input: &str) -> Result<String, &str> {
-    Ok("solved part 2".to_string())
+    let lines = input.lines().collect::<Vec<&str>>();
+    let line_len = lines[0].len();
+    let mut number_cache = vec![];
+    let mut numbers = vec![];
+    let mut res = vec![];
+    let mut last_op = None;
+    for j in 0..line_len {
+        for i in 0..lines.len() {
+            let char_byte = lines[i].as_bytes().iter().nth(j).unwrap();
+            match char_byte {
+                b'0'..=b'9' => {
+                    let c = (char_byte - b'0') as i64;
+                    number_cache.push(c);
+                }
+                b'+' => {
+                    if let Some(op) = last_op {
+                        // 处理之前的操作符
+                        match op {
+                            b'+' => {
+                                let sum: i64 = numbers.iter().sum();
+                                res.push(sum);
+                                numbers.clear();
+                            }
+                            b'*' => {
+                                let prod: i64 = numbers.iter().product();
+                                res.push(prod);
+                                numbers.clear();
+                            }
+                            _ => {}
+                        }
+                    }
+                    last_op = Some(b'+');
+                    if number_cache.is_empty() {
+                        continue;
+                    }
+                    let mut number = 0;
+                    for &c in &number_cache {
+                        number = number * 10 + c;
+                    }
+                    print!("number:{} \n", number);
+                    numbers.push(number);
+                    number_cache.clear();
+                }
+
+                b'*' => {
+                    if let Some(op) = last_op {
+                        // 处理之前的操作符
+                        match op {
+                            b'+' => {
+                                let sum: i64 = numbers.iter().sum();
+                                res.push(sum);
+                                numbers.clear();
+                            }
+                            b'*' => {
+                                let prod: i64 = numbers.iter().product();
+                                res.push(prod);
+                                numbers.clear();
+                            }
+                            _ => {}
+                        }
+                    }
+                    last_op = Some(b'*');
+                    if number_cache.is_empty() {
+                        continue;
+                    }
+                    let mut number = 0;
+                    for &c in &number_cache {
+                        number = number * 10 + c;
+                    }
+                    print!("number:{} \n", number);
+                    numbers.push(number);
+                    number_cache.clear();
+                }
+                b' ' => {
+                    if number_cache.is_empty() {
+                        continue;
+                    }
+                    let mut number = 0;
+                    for &c in &number_cache {
+                        number = number * 10 + c;
+                    }
+                    print!("number:{} \n", number);
+                    numbers.push(number);
+                    number_cache.clear();
+                }
+                _ => {
+                    return Err("invalid character");
+                }
+            }
+        }
+    }
+    if let Some(op) = last_op {
+        // 处理之前的操作符
+        match op {
+            b'+' => {
+                let sum: i64 = numbers.iter().sum();
+                res.push(sum);
+            }
+            b'*' => {
+                let prod: i64 = numbers.iter().product();
+                res.push(prod);
+            }
+            _ => {}
+        }
+        numbers.clear();
+    }
+    let final_res: i64 = res
+        .iter()
+        .sum();
+    Ok(final_res.to_string())
 }
 
 #[cfg(test)]
@@ -46,6 +157,6 @@ mod tests {
     }
     #[test]
     fn test_part2() {
-        assert_eq!(part02(&INPUT).unwrap(), "6");
+        assert_eq!(part02(&INPUT).unwrap(), "3263827");
     }
 }
