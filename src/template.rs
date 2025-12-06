@@ -1,10 +1,10 @@
-use std::fmt::Error;
+use std::error::Error;
 
-pub fn part01(input: &str) -> Result<String, Error> {
+pub fn part01(input: &str) -> Result<String, &str> {
     Ok(format!("solved part 1 with len {}", input.len()))
 }
 
-pub fn part02(input: &str) -> Result<String, Error> {
+pub fn part02(input: &str) -> Result<String, &str> {
     Ok("solved part 2".to_string())
 }
 

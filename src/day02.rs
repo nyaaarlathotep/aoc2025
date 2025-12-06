@@ -1,5 +1,4 @@
-use std::collections::HashSet;
-use std::{f32::consts::E, fmt::Error};
+use std:: fmt::Error;
 
 pub fn part01(input: &str) -> Result<String, Error> {
     let res: i64 = input
