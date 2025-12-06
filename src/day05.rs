@@ -5,7 +5,7 @@ pub fn part01(input: &str) -> Result<String, Error> {
     let ranges = parse_ranges(raw_ranges);
     let merged_ranges = merge_ranges(&ranges);
 
-    let res=numbers
+    let res = numbers
         .lines()
         .filter_map(|line| line.parse::<i64>().ok())
         .filter(|&n| {
@@ -54,7 +54,15 @@ fn merge_ranges(ranges: &Vec<(i64, i64)>) -> Vec<(i64, i64)> {
 }
 
 pub fn part02(input: &str) -> Result<String, Error> {
-    Ok("solved part 2".to_string())
+    let (raw_ranges, _) = input.split_once("\n\n").unwrap();
+    let ranges = parse_ranges(raw_ranges);
+    let merged_ranges = merge_ranges(&ranges);
+
+    Ok(merged_ranges
+        .iter()
+        .map(|(start, end)| end - start + 1)
+        .sum::<i64>()
+        .to_string())
 }
 
 #[cfg(test)]
@@ -77,7 +85,6 @@ mod tests {
     }
     #[test]
     fn test_part2() {
-
-        assert_eq!(part02(&INPUT).unwrap(), "6");
+        assert_eq!(part02(&INPUT).unwrap(), "14");
     }
 }
