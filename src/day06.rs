@@ -1,5 +1,4 @@
-use core::num;
-use std::{os::linux::raw, vec};
+use std::vec;
 
 pub fn part01(input: &str) -> Result<String, &str> {
     let (numbers, operators) = parse(input);
@@ -130,9 +129,7 @@ pub fn part02(input: &str) -> Result<String, &str> {
         }
         numbers.clear();
     }
-    let final_res: i64 = res
-        .iter()
-        .sum();
+    let final_res: i64 = res.iter().sum();
     Ok(final_res.to_string())
 }
 
