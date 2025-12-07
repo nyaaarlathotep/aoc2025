@@ -1,4 +1,5 @@
-use std::vec;
+use core::num;
+use std::{os::linux::raw, vec};
 
 pub fn part01(input: &str) -> Result<String, &str> {
     let (numbers, operators) = parse(input);
@@ -37,33 +38,21 @@ pub fn part02(input: &str) -> Result<String, &str> {
     let mut number_cache = vec![];
     let mut numbers = vec![];
     let mut res = vec![];
-    let mut last_op = None;
+    let mut this_op = None;
+    let mut space_count = 0;
+    let mut raw_numbers = vec![];
     for j in 0..line_len {
         for i in 0..lines.len() {
             let char_byte = lines[i].as_bytes().iter().nth(j).unwrap();
             match char_byte {
                 b'0'..=b'9' => {
+                    space_count = 0;
                     let c = (char_byte - b'0') as i64;
                     number_cache.push(c);
                 }
                 b'+' => {
-                    if let Some(op) = last_op {
-                        // 处理之前的操作符
-                        match op {
-                            b'+' => {
-                                let sum: i64 = numbers.iter().sum();
-                                res.push(sum);
-                                numbers.clear();
-                            }
-                            b'*' => {
-                                let prod: i64 = numbers.iter().product();
-                                res.push(prod);
-                                numbers.clear();
-                            }
-                            _ => {}
-                        }
-                    }
-                    last_op = Some(b'+');
+                    space_count = 0;
+                    this_op = Some(b'+');
                     if number_cache.is_empty() {
                         continue;
                     }
@@ -71,29 +60,13 @@ pub fn part02(input: &str) -> Result<String, &str> {
                     for &c in &number_cache {
                         number = number * 10 + c;
                     }
-                    print!("number:{} \n", number);
                     numbers.push(number);
                     number_cache.clear();
                 }
 
                 b'*' => {
-                    if let Some(op) = last_op {
-                        // 处理之前的操作符
-                        match op {
-                            b'+' => {
-                                let sum: i64 = numbers.iter().sum();
-                                res.push(sum);
-                                numbers.clear();
-                            }
-                            b'*' => {
-                                let prod: i64 = numbers.iter().product();
-                                res.push(prod);
-                                numbers.clear();
-                            }
-                            _ => {}
-                        }
-                    }
-                    last_op = Some(b'*');
+                    space_count = 0;
+                    this_op = Some(b'*');
                     if number_cache.is_empty() {
                         continue;
                     }
@@ -101,29 +74,48 @@ pub fn part02(input: &str) -> Result<String, &str> {
                     for &c in &number_cache {
                         number = number * 10 + c;
                     }
-                    print!("number:{} \n", number);
                     numbers.push(number);
                     number_cache.clear();
                 }
                 b' ' => {
-                    if number_cache.is_empty() {
-                        continue;
+                    space_count += 1;
+                    if !number_cache.is_empty() {
+                        let mut number = 0;
+                        for &c in &number_cache {
+                            number = number * 10 + c;
+                        }
+                        numbers.push(number);
+                        number_cache.clear();
                     }
-                    let mut number = 0;
-                    for &c in &number_cache {
-                        number = number * 10 + c;
-                    }
-                    print!("number:{} \n", number);
-                    numbers.push(number);
-                    number_cache.clear();
                 }
                 _ => {
                     return Err("invalid character");
                 }
             }
+            if space_count >= 6 {
+                if !numbers.is_empty() {
+                    if let Some(op) = this_op {
+                        // 处理之前的操作符
+                        match op {
+                            b'+' => {
+                                let sum: i64 = numbers.iter().sum();
+                                res.push(sum);
+                            }
+                            b'*' => {
+                                let prod: i64 = numbers.iter().product();
+                                res.push(prod);
+                            }
+                            _ => {}
+                        }
+                        raw_numbers.push(numbers);
+                        numbers = vec![];
+                    }
+                    space_count = 0;
+                }
+            }
         }
     }
-    if let Some(op) = last_op {
+    if let Some(op) = this_op {
         // 处理之前的操作符
         match op {
             b'+' => {
