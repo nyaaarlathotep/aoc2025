@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cmp::Reverse, collections::HashMap};
 #[derive(Eq, PartialEq, Debug, Hash, Clone)]
 struct Point {
     x: i64,
@@ -96,6 +96,9 @@ impl UnionFind {
             .map(|(root, &size)| (size, root.clone()))
             .collect()
     }
+    fn get_node_numbers(&self) -> usize {
+        self.parents.len()
+    }
 }
 
 impl Point {
@@ -174,7 +177,7 @@ fn part01_solve(edge_count: usize, input: &str) -> String {
     components.sort_by(|a, b| b.0.cmp(&a.0));
     let mut res = 1;
     for i in 0..3 {
-        let (size, root) = &components[i];
+        let (size, _) = &components[i];
         // println!(
         //     "Largest Component Root: ({},{},{}), Size: {}",
         //     root.x, root.y, root.z, size
@@ -186,7 +189,44 @@ fn part01_solve(edge_count: usize, input: &str) -> String {
 }
 
 pub fn part02(input: &str) -> Result<String, &str> {
-    Ok("solved part 2".to_string())
+    let points: Vec<Point> = input.lines().map(|line| Point::from_str(line)).collect();
+    let mut min_heap = std::collections::BinaryHeap::new();
+    for i in 0..points.len() {
+        for j in (i + 1)..points.len() {
+            let dist = points[i].distance(&points[j]);
+            let pp: PointPair<'_> = PointPair {
+                p1: &points[i],
+                p2: &points[j],
+                dist,
+            };
+            min_heap.push(Reverse(pp));
+        }
+    }
+
+    let mut uf = UnionFind::new();
+    while let Some(Reverse(pp)) = min_heap.pop() {
+        // println!(
+        //     "point1: ({},{},{}), Point2: ({},{},{}) DistSq: {}",
+        //     pp.p1.x, pp.p1.y, pp.p1.z, pp.p2.x, pp.p2.y, pp.p2.z, pp.dist
+        // );
+        uf.union(pp.p1, pp.p2);
+        // let components = uf.get_components_info();
+        // println!("Current component count: {}", components.len());
+
+        if uf.get_node_numbers() == points.len() {
+            let components = uf.get_components_info();
+            let (size, _) = &components[0];
+            if size == &points.len() {
+                // println!(
+                //     "ppoint1: ({},{},{}), Point2: ({},{},{})",
+                //     pp.p1.x, pp.p1.y, pp.p1.z, pp.p2.x, pp.p2.y, pp.p2.z,
+                // );
+                return Ok((pp.p1.x * pp.p2.x).to_string());
+            }
+        }
+    }
+
+    Ok("".to_string())
 }
 
 #[cfg(test)]
@@ -218,6 +258,6 @@ mod tests {
     }
     #[test]
     fn test_part2() {
-        assert_eq!(part02(&INPUT).unwrap(), "6");
+        assert_eq!(part02(&INPUT).unwrap(), "25272");
     }
 }
