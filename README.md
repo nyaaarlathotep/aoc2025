@@ -10,4 +10,4 @@ I attempted to optimize the solution to meet timing constraints, but I realized 
 
 ## day08
 
-Really? UnionFind.
+Really? How about UnionFind, that's how ai works.
