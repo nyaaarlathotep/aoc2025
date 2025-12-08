@@ -99,6 +99,9 @@ impl UnionFind {
     fn get_node_numbers(&self) -> usize {
         self.parents.len()
     }
+    fn get_component_count(&self) -> usize {
+        self.count
+    }
 }
 
 impl Point {
@@ -213,7 +216,7 @@ pub fn part02(input: &str) -> Result<String, &str> {
         // let components = uf.get_components_info();
         // println!("Current component count: {}", components.len());
 
-        if uf.get_node_numbers() == points.len() {
+        if uf.get_component_count() == 1 && uf.get_node_numbers() == points.len() {
             let components = uf.get_components_info();
             let (size, _) = &components[0];
             if size == &points.len() {
