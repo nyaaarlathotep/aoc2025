@@ -1,4 +1,6 @@
+use core::panic;
 use good_lp::{Expression, Solution, SolverModel, constraint, highs, variable, variables};
+use std::collections::HashMap;
 use std::vec;
 
 struct Machine {
@@ -120,168 +122,97 @@ pub fn part01(input: &str) -> Result<String, &str> {
 }
 
 pub fn part02(input: &str) -> Result<String, &str> {
-    let machines = input
+    let res = input
         .lines()
         .filter_map(|line| Machine::from_str(line))
-        .collect::<Vec<Machine>>();
-
-    let res = machines
-        .iter()
         .map(|machine| {
-            println!(
-                "Checking machine with target lights: {:?}",
-                machine.target_light
-            );
-            let mut min_count = usize::MAX;
-            let permutations = machine.full_permutations();
-            permutations.iter().for_each(|perm| {
-                let mut init_light = vec![false; machine.target_light.len()];
-                for &btn_idx in perm {
-                    for &light_idx in &machine.button[btn_idx] {
-                        init_light[light_idx] = !init_light[light_idx];
-                    }
-                }
-                let mut match_target = true;
-                for i in 0..machine.target_light.len() {
-                    if init_light[i] != machine.target_light[i] {
-                        match_target = false;
-                        break;
-                    }
-                }
-                if match_target {
-                    let added_joltage: Vec<i32> = perm
-                        .iter()
-                        .map(|&btn_idx| machine.button[btn_idx].clone())
-                        .fold(vec![0; machine.joltage.len()], |mut acc, button| {
-                            for &idx in &button {
-                                acc[idx] += 1;
-                            }
-                            acc
-                        });
-                    println!("Added joltage from buttons: {:?}", added_joltage);
-                    let remain_joltage: Vec<i32> = machine
-                        .joltage
-                        .iter()
-                        .enumerate()
-                        .map(|(i, &joltage)| joltage as i32 - added_joltage[i])
-                        .collect();
-                    println!("Remaining joltage to fulfill: {:?}", remain_joltage);
-                    if let Some(count) = solve(remain_joltage, &machine.target_light, &machine.button) {
-                        if count + perm.len() < min_count {
-                            min_count = count + perm.len();
-                        }
-                    }
-                }
-            });
-            min_count
+            let joltage = machine
+                .joltage
+                .iter()
+                .map(|&j| j as i32)
+                .collect::<Vec<i32>>();
+            if let Some(count) = solve(&joltage, &machine.button) {
+                count
+            } else {
+                panic!("No solution found");
+            }
         })
         .sum::<usize>();
     Ok(res.to_string())
 }
+/// 求解使得 subsets 组合能恰好消除 target 的最小步数
+fn solve(target: &Vec<i32>, subsets: &Vec<Vec<usize>>) -> Option<usize> {
+    let mut memo = HashMap::new();
+    solve_recursive(target, subsets, &mut memo)
+}
 
-fn solve(
-    target_ints: Vec<i32>,
-    target_bools: &Vec<bool>,
+fn solve_recursive(
+    current_target: &Vec<i32>,
     subsets: &Vec<Vec<usize>>,
+    memo: &mut HashMap<Vec<i32>, Option<usize>>,
 ) -> Option<usize> {
-    // 1. 初始化变量构建器
-    let mut vars = variables!();
-
-    // 2. 创建主要决策变量 x_i (每个子集取多少个)
-    let x_vars: Vec<_> = (0..subsets.len())
-        .map(|i| vars.add(variable().min(0).integer().name(format!("x{}", i))))
-        .collect();
-
-    // 3. 创建辅助变量 k_i (用于处理布尔值的模 2 约束)
-    // 对于每个目标位置 i，我们需要一个 k_i 来表示翻转次数里的 "偶数部分"
-    // 公式: Total_Flips = 2 * k + Target_Bool
-    let k_vars: Vec<_> = (0..target_ints.len())
-        .map(|i| vars.add(variable().min(0).integer().name(format!("k_aux_{}", i))))
-        .collect();
-
-    // 4. 目标函数: 最小化 x 的总和
-    let objective: Expression = x_vars.iter().sum();
-
-    // 5. 初始化模型
-    let mut problem = vars.minimise(objective.clone()).using(highs);
-
-    // 6. 生成约束
-    for pos in 0..target_ints.len() {
-        let target_val = target_ints[pos];
-        let target_bool_val = if target_bools[pos] { 1 } else { 0 };
-
-        // --- 找出覆盖当前 pos 的 x 变量 ---
-        // (在这个题目中，子集既影响 int 也影响 bool，所以是同一组 x)
-        let relevant_vars: Vec<Expression> = subsets
-            .iter()
-            .enumerate()
-            .filter(|(_, subset)| subset.contains(&pos))
-            .map(|(i, _)| x_vars[i].into())
-            .collect();
-
-        if relevant_vars.is_empty() {
-            // 没有任何子集能影响这个位置
-            if target_val > 0 || target_bool_val > 0 {
-                eprintln!("❌ 位置 {} 无法被覆盖 (无相关子集)", pos);
-                return None;
-            }
-        } else {
-            let sum_expr: Expression = relevant_vars.iter().sum();
-
-            // 【约束 A: 整数数值必须精确匹配】
-            // Sum(x) == TargetInt
-            problem.add_constraint(constraint!(sum_expr.clone() == target_val));
-
-            // 【约束 B: 布尔值必须匹配 (模 2 约束)】
-            // Sum(x) == 2 * k + TargetBool
-            // 移项得: Sum(x) - 2 * k == TargetBool
-            let bool_constraint_expr = sum_expr - 2 * k_vars[pos];
-            problem.add_constraint(constraint!(bool_constraint_expr == target_bool_val));
-        }
+    // 1. 检查备忘录
+    if let Some(&res) = memo.get(current_target) {
+        return res;
     }
 
-    // 7. 求解
-    println!("正在求解 (双重约束: 数值 + 布尔)...");
-    match problem.solve() {
-        Ok(solution) => {
-            let res = solution.eval(objective);
-            let total_count = res.round() as usize;
+    // 2. Base Case: 检查是否所有目标都已归零
+    // 如果所有位都是 0，说明找到了解，步数为 0
+    if current_target.iter().all(|&x| x == 0) {
+        return Some(0);
+    }
 
-            println!("✅ 找到最优解! 最小总数: {}", total_count);
-            println!("{}", "-".repeat(40));
+    // 3. 剪枝策略：寻找第一个非零的目标索引 (Pivot Index)
+    // 我们不需要遍历所有 subsets，只遍历那些能“减少”当前遇到的第一个非零数的 subsets。
+    // 这大大减少了搜索空间。
+    let first_nonzero_idx = current_target.iter().position(|&x| x > 0);
 
-            // 打印 x 的取值
-            for (i, subset) in subsets.iter().enumerate() {
-                let count = solution.value(x_vars[i]);
-                if count > 0.0 {
-                    println!(
-                        "  集合 {:<10}: 取 {} 个",
-                        format!("{:?}", subset),
-                        count.round() as i32
-                    );
+    match first_nonzero_idx {
+        None => {
+            // 这里理论上不会到达，因为前面 all(==0) 已经拦截了，但以防万一处理负数情况
+            return None;
+        }
+        Some(idx) => {
+            let mut min_steps: Option<usize> = None;
+
+            // 4. 遍历所有操作
+            for subset in subsets {
+                // 优化：只尝试那些包含 pivot index 的操作
+                // 也就是说，如果当前我们在解决 index 0 的剩余数值，我们只看能消除 index 0 的操作
+                if !subset.contains(&idx) {
+                    continue;
+                }
+
+                // 尝试应用这个 subset
+                // 检查应用后是否会导致负数（假设我们不允许负数，即必须精确匹配）
+                let mut valid = true;
+                let mut next_target = current_target.clone();
+
+                for &target_idx in subset {
+                    if next_target[target_idx] > 0 {
+                        next_target[target_idx] -= 1;
+                    } else {
+                        // 如果这一步导致某个数变成负数，则此路不通
+                        valid = false;
+                        break;
+                    }
+                }
+
+                if valid {
+                    // 递归求解剩余部分
+                    if let Some(steps) = solve_recursive(&next_target, subsets, memo) {
+                        let total_steps = 1 + steps;
+                        // 更新最小步数
+                        if min_steps.map_or(true, |curr_min| total_steps < curr_min) {
+                            min_steps = Some(total_steps);
+                        }
+                    }
                 }
             }
 
-            // (可选) 打印 k 的取值，用于验证布尔逻辑
-            // k 表示在这个位置上，我们翻转了多少个 "双倍"
-            /*
-            println!("{}", "-".repeat(40));
-            for pos in 0..target_ints.len() {
-                 let k = solution.value(k_vars[pos]);
-                 println!("  Pos {}: 辅助变量 k={}, 总翻转次数={}",
-                    pos, k.round(), 2.0 * k + (if target_bools[pos] {1.0} else {0.0}));
-            }
-            */
-
-            Some(total_count)
-        }
-        Err(_) => {
-            // 为了更友好的提示，我们不打印复杂的 error struct，而是说明原因
-            eprintln!("❌ 求解失败: 无法同时满足【数值目标】和【布尔目标】。");
-            eprintln!(
-                "   原因可能是数学冲突 (例如: 要求数值凑出 3(奇)，但布尔状态要求 False(偶))。"
-            );
-            None
+            // 5. 写入备忘录并返回
+            memo.insert(current_target.clone(), min_steps);
+            min_steps
         }
     }
 }
@@ -300,26 +231,5 @@ mod tests {
     fn test_part2() {
         assert_eq!(part02(&INPUT).unwrap(), "33");
     }
-    #[test]
-    fn test_highs() {
-        let subsets = vec![
-            vec![3],    // x0
-            vec![1, 3], // x1
-            vec![2],    // x2
-            vec![2, 3], // x3
-            vec![0, 2], // x4
-            vec![0, 1], // x5
-        ];
 
-        let target_ints = vec![3, 5, 4, 7];
-
-        // 这里的 bool 必须符合 target_ints 的奇偶性，否则会报错
-        // 3->T, 5->T, 4->F, 7->T
-        let target_bools = vec![true, true, false, true];
-
-        // 测试一个不可能的案例 (解开注释试试)
-        // let target_bools = vec![true, true, true, true]; // 错误: 位置2是4(偶)，不能是True
-
-        solve(target_ints, target_bools, &subsets);
-    }
 }
