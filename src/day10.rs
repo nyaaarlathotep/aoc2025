@@ -1,6 +1,5 @@
 use core::panic;
 use good_lp::{Expression, Solution, SolverModel, constraint, highs, variable, variables};
-use std::collections::HashMap;
 use std::vec;
 
 struct Machine {
@@ -85,10 +84,6 @@ pub fn part01(input: &str) -> Result<String, &str> {
         .iter()
         .map(|machine| {
             let mut min_button_permutation: Option<&Vec<usize>> = None;
-            println!(
-                "Checking machine with target lights: {:?}",
-                machine.target_light
-            );
             let permutations = machine.full_permutations();
             permutations.iter().for_each(|perm| {
                 let mut init_light = vec![false; machine.target_light.len()];
@@ -114,7 +109,6 @@ pub fn part01(input: &str) -> Result<String, &str> {
                     }
                 }
             });
-            println!("Found min button permutation: {:?}", min_button_permutation);
             min_button_permutation.unwrap_or(&vec![]).len()
         })
         .sum::<usize>();
@@ -140,79 +134,64 @@ pub fn part02(input: &str) -> Result<String, &str> {
         .sum::<usize>();
     Ok(res.to_string())
 }
-/// 求解使得 subsets 组合能恰好消除 target 的最小步数
-fn solve(target: &Vec<i32>, subsets: &Vec<Vec<usize>>) -> Option<usize> {
-    let mut memo = HashMap::new();
-    solve_recursive(target, subsets, &mut memo)
-}
-
-fn solve_recursive(
-    current_target: &Vec<i32>,
+fn solve(
+    target_ints: &Vec<i32>,
     subsets: &Vec<Vec<usize>>,
-    memo: &mut HashMap<Vec<i32>, Option<usize>>,
 ) -> Option<usize> {
-    // 1. 检查备忘录
-    if let Some(&res) = memo.get(current_target) {
-        return res;
-    }
+    // 1. 初始化变量构建器
+    let mut vars = variables!();
 
-    // 2. Base Case: 检查是否所有目标都已归零
-    // 如果所有位都是 0，说明找到了解，步数为 0
-    if current_target.iter().all(|&x| x == 0) {
-        return Some(0);
-    }
+    // 2. 创建主要决策变量 x_i (每个子集取多少个)
+    // 依然保持整数约束 (Integer Programming)
+    let x_vars: Vec<_> = (0..subsets.len())
+        .map(|i| vars.add(variable().min(0).integer().name(format!("x{}", i))))
+        .collect();
 
-    // 3. 剪枝策略：寻找第一个非零的目标索引 (Pivot Index)
-    // 我们不需要遍历所有 subsets，只遍历那些能“减少”当前遇到的第一个非零数的 subsets。
-    // 这大大减少了搜索空间。
-    let first_nonzero_idx = current_target.iter().position(|&x| x > 0);
+    // 4. 目标函数: 最小化 x 的总和
+    let objective: Expression = x_vars.iter().sum();
 
-    match first_nonzero_idx {
-        None => {
-            // 这里理论上不会到达，因为前面 all(==0) 已经拦截了，但以防万一处理负数情况
-            return None;
-        }
-        Some(idx) => {
-            let mut min_steps: Option<usize> = None;
+    // 5. 初始化模型
+    let mut problem = vars.minimise(objective.clone()).using(highs);
 
-            // 4. 遍历所有操作
-            for subset in subsets {
-                // 优化：只尝试那些包含 pivot index 的操作
-                // 也就是说，如果当前我们在解决 index 0 的剩余数值，我们只看能消除 index 0 的操作
-                if !subset.contains(&idx) {
-                    continue;
-                }
+    // 6. 生成约束 (仅保留数值累加)
+    for pos in 0..target_ints.len() {
+        let target_val = target_ints[pos];
 
-                // 尝试应用这个 subset
-                // 检查应用后是否会导致负数（假设我们不允许负数，即必须精确匹配）
-                let mut valid = true;
-                let mut next_target = current_target.clone();
+        // --- 找出覆盖当前 pos 的 x 变量 ---
+        let relevant_vars: Vec<Expression> = subsets
+            .iter()
+            .enumerate()
+            .filter(|(_, subset)| subset.contains(&pos))
+            .map(|(i, _)| x_vars[i].into()) // 将 x_var 转换为 Expression
+            .collect();
 
-                for &target_idx in subset {
-                    if next_target[target_idx] > 0 {
-                        next_target[target_idx] -= 1;
-                    } else {
-                        // 如果这一步导致某个数变成负数，则此路不通
-                        valid = false;
-                        break;
-                    }
-                }
-
-                if valid {
-                    // 递归求解剩余部分
-                    if let Some(steps) = solve_recursive(&next_target, subsets, memo) {
-                        let total_steps = 1 + steps;
-                        // 更新最小步数
-                        if min_steps.map_or(true, |curr_min| total_steps < curr_min) {
-                            min_steps = Some(total_steps);
-                        }
-                    }
-                }
+        if relevant_vars.is_empty() {
+            // 如果没有任何子集能影响这个位置，且目标值不为0，则无解
+            if target_val > 0 {
+                eprintln!("❌ 位置 {} 无法被覆盖 (无相关子集且目标值 > 0)", pos);
+                return None;
             }
+        } else {
+            let sum_expr: Expression = relevant_vars.iter().sum();
 
-            // 5. 写入备忘录并返回
-            memo.insert(current_target.clone(), min_steps);
-            min_steps
+            // 【保留】约束 A: 整数数值必须精确匹配
+            // Sum(x_subset) == TargetInt
+            problem.add_constraint(constraint!(sum_expr == target_val));
+
+            // [已移除] 约束 B: Sum(x) - 2*k == TargetBool
+        }
+    }
+
+    // 7. 求解
+    match problem.solve() {
+        Ok(solution) => {
+            let res = solution.eval(objective);
+            let total_count = res.round() as usize;
+            Some(total_count)
+        }
+        Err(e) => {
+            eprintln!("❌ 求解失败: {:?}", e);
+            None
         }
     }
 }
@@ -231,5 +210,4 @@ mod tests {
     fn test_part2() {
         assert_eq!(part02(&INPUT).unwrap(), "33");
     }
-
 }
