@@ -53,43 +53,61 @@ fn paths<'a>(
 
 pub fn part02(input: &str) -> Result<String, &str> {
     let m = parse(input);
-    let all_paths = paths("svr", "out", &mut HashSet::new(), &m);
-    let res: Vec<_> = all_paths
-        .into_iter()
-        .filter(|path| path.contains(&"fft") && path.contains(&"dac"))
-        .collect();
-    // eprintln!("paths:{:?}", res);
+    let start1 = part2_paths("svr", "fft", vec![], &m);
+    let mut res = vec![];
+    for start_path in start1 {
+        eprintln!("{:?}", start_path);
+        let mid_paths = part2_paths("fft", "dac", start_path, &m);
+        for mid in mid_paths {
+            eprintln!("{:?}", mid);
+            let end_paths = part2_paths("dac", "out", mid, &m);
+            for path in end_paths {
+                eprintln!("{:?}", path);
+                res.push(path);
+            }
+        }
+    }
+    eprintln!("-----------------");
+    let start2 = part2_paths("svr", "dac", vec![], &m);
+    for start_path in start2 {
+        eprintln!("{:?}", start_path);
+        let mid_paths = part2_paths("dac", "fft", start_path, &m);
+        for mid in mid_paths {
+            eprintln!("{:?}", mid);
+            let end_paths = part2_paths("fft", "out", mid, &m);
+            for path in end_paths {
+                eprintln!("{:?}", path);
+                res.push(path);
+            }
+        }
+    }
+    // let res = part2_paths("svr", "out", vec![], &m);
+    eprintln!("paths:{:?}", res);
     Ok(res.len().to_string())
 }
 fn part2_paths<'a>(
     now: &'a str,
     end: &'a str,
     path: Vec<&'a str>,
-    visited: &mut HashSet<&'a str>,
     m: &'a HashMap<&str, Vec<&str>>,
 ) -> Vec<Vec<&'a str>> {
-    if visited.contains(now) {
-        return vec![];
-    }
+    // if path.contains(&now) {
+    //     return vec![];
+    // }
     if now == end {
-        if path.contains(&"fft") && path.contains(&"dac") {
-            return vec![path];
-        }
-        return vec![];
+        return vec![path];
     }
-    visited.insert(now);
     let mut res = vec![];
     if let Some(nexts) = m.get(now) {
         for &next in nexts {
             let mut new_path = path.clone();
             new_path.push(now);
-            let succeed_paths = part2_paths(next, end, new_path, visited, m);
+            let succeed_paths = part2_paths(next, end, new_path, m);
             for path in succeed_paths {
                 res.push(path);
             }
         }
     }
-    visited.remove(now);
     res
 }
 
