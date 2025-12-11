@@ -178,7 +178,6 @@ fn solve(
             // Sum(x_subset) == TargetInt
             problem.add_constraint(constraint!(sum_expr == target_val));
 
-            // [已移除] 约束 B: Sum(x) - 2*k == TargetBool
         }
     }
 
