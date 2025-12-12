@@ -2,7 +2,7 @@ use core::panic;
 
 struct Gift {
     area: usize,
-    shape: Vec<Vec<char>>,
+    _shape: Vec<Vec<char>>,
 }
 
 struct Region {
@@ -30,7 +30,10 @@ impl Gift {
             .filter(|&&c| c == '#')
             .count();
 
-        Some(Gift { area, shape })
+        Some(Gift {
+            area,
+            _shape: shape,
+        })
     }
 }
 
@@ -101,7 +104,7 @@ pub fn part01(input: &str) -> Result<String, &str> {
             }
             let gift_count = region.gift_index.iter().sum::<usize>();
             let overflow_count = (region.length / 3) * (region.width / 3);
-            if overflow_count>=gift_count{
+            if overflow_count >= gift_count {
                 return true;
             }
 
@@ -111,7 +114,7 @@ pub fn part01(input: &str) -> Result<String, &str> {
     Ok(res.to_string())
 }
 
-pub fn part02(input: &str) -> Result<String, &str> {
+pub fn part02(_input: &str) -> Result<String, &str> {
     Ok("solved part 2".to_string())
 }
 

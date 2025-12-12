@@ -29,3 +29,8 @@ AI sama, you saved me.
 ## day11
 
 Dumb, a simple cache may solve the dfs problems, how could I forget that.
+
+
+## day12
+
+Wow, definitely the hardest one yet, but there are some tricks for the cowardly to escape. Thanks again, Reddit—otherwise, it would have been a long fight in vain.
