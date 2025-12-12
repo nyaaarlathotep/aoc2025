@@ -6,7 +6,6 @@ use std::{
 pub fn part01(input: &str) -> Result<String, &str> {
     let m = parse(input);
     let res = paths("you", "out", &mut HashSet::new(), &m);
-    // eprintln!("paths:{:?}",res);
     Ok(res.len().to_string())
 }
 
@@ -65,7 +64,6 @@ pub fn part02(input: &str) -> Result<String, &str> {
         * part2_paths("fft", "dac", &mut HashMap::new(), &m)
         * part2_paths("dac", "out", &mut HashMap::new(), &m);
 
-    // let res = part2_paths("svr", "out", vec![], &m);
     Ok((path1 + path2).to_string())
 }
 fn part2_paths<'a>(

@@ -18,7 +18,8 @@ aoc_main!(
     day08,
     day09,
     day10,
-    day11
+    day11,
+    day12
 );
 
 // 下面是宏定义，不需要每次修改
